@@ -6,9 +6,11 @@
 #include <unordered_set>
 using namespace std;
 
+// added retroactively in 2024
 void pretty_print(string &board_str);
 
 static const int SIZE = 20;
+static const int INDENT = 5;
 static const string EMPTY = "  ";
 static const int deltaAdj[4] = {-4, -1, 4, 1};
 
@@ -35,17 +37,33 @@ void clear_queue(queue<string> &q) {
 
 typedef bool (*moveFunction)(int to, string (&board)[SIZE]);
 
+// Board formatting guide:
+//
+// 'g' denotes a goal block 2x2
+// 's' denotes a small block 1x1
+// 'h' denotes a horizontal block 2x1
+// 'v' denotes a vertical block 1x2
+//
+// blocks must be set up correctly and use numbers to differentiate them
+
 int main() {
-  // set up board and pieces
+  // example set up board and pieces
+  //
   //  string board[SIZE] = {  "v1", "g1", "g1", "v2",
   //                          "v1", "g1", "g1", "v2",
   //                          "v3", "h1", "h1", "v4",
   //                          "v3", "s2", "s3", "v4",
   //                          "s1", EMPTY,EMPTY,"s4" };
 
-  string board[20] = {EMPTY, "g1", "g1", EMPTY, "s1", "g1", "g1",
-                      "s4",  "s2", "s3", "h1",  "h1", "h2", "h2",
-                      "v1",  "v2", "h3", "h3",  "v1", "v2"};
+  // clang-format off
+  string board[20] = {
+    EMPTY, "g1", "g1", EMPTY,
+    "s1", "g1", "g1", "s4",
+    "s2", "s3", "h1", "h1",
+    "h2", "h2", "v1", "v2",
+    "h3", "h3", "v1", "v2"
+  };
+  // clang-format on 
 
   string start_board_str = board_to_string(board);
   string final_board_str = "";
@@ -107,7 +125,7 @@ int main() {
   }
   sol.push(start_board_str);
   cout << "SOLUTION:" << endl;
-  cout << "in " << moves << " moves" << endl;
+  cout << "in " << moves << " moves";
 
   while (!sol.empty()) {
     getline(cin, start_board_str);
@@ -357,6 +375,21 @@ const int PRETTY_ROWS = BLK_R * 5;
 \————/
 */
 
+void print_goal(int row, int col, unsigned char prettyboard[PRETTY_ROWS][PRETTY_COLS]) {
+  int blk_c = BLK_C;
+  int blk_r = BLK_R;
+  int c = col * blk_c;
+  int r = row * blk_r;
+  for (int i = 1; i < blk_r - 1; i++) 
+    for (int j = 2; j < blk_c - 2; j++) 
+      prettyboard[r + i][c + j] = '$';
+}
+
+void indent() {
+  for (int i = 0; i < INDENT; i++)
+    cout << ' ';
+}
+
 void print_block(string &block, int row, int col,
                  unsigned char prettyboard[PRETTY_ROWS][PRETTY_COLS]) {
   int blk_c = BLK_C;
@@ -366,6 +399,11 @@ void print_block(string &block, int row, int col,
   int r = row * blk_r;
   bool print = true;
 
+  char horizontal = '-';
+  char lvertical = '|';
+  char rvertical = '|';
+  char corner = '+';
+
   if (block[0] == 's') {
   } else if (block[0] == 'h') {
     blk_c = BLK_C * 2;
@@ -374,31 +412,38 @@ void print_block(string &block, int row, int col,
   } else if (block[0] == 'g') {
     blk_r = BLK_R * 2;
     blk_c = BLK_C * 2;
+    horizontal = '%';
+    lvertical = '@';
+    rvertical = '@';
+    corner = '@';
   } else {
     print = false;
   }
 
   if (print) {
-    prettyboard[r][c] = '+';
-    prettyboard[r][c + blk_c - 1] = '+';
-    prettyboard[r + blk_r - 1][c] = '+';
-    prettyboard[r + blk_r - 1][c + blk_c - 1] = '+';
+    prettyboard[r][c] = corner;
+    prettyboard[r][c + blk_c - 1] = corner;
+    prettyboard[r + blk_r - 1][c] = corner;
+    prettyboard[r + blk_r - 1][c + blk_c - 1] = corner;
     for (int j = 1; j < blk_c - 1; j++)
-      prettyboard[r + 0][c + j] = '-';
+      prettyboard[r + 0][c + j] = horizontal;
     for (int j = 1; j < blk_c - 1; j++)
-      prettyboard[r + blk_r - 1][c + j] = '-';
+      prettyboard[r + blk_r - 1][c + j] = horizontal;
     for (int i = 1; i < blk_r - 1; i++)
-      prettyboard[r + i][c] = '|';
+      prettyboard[r + i][c] = lvertical;
     for (int i = 1; i < blk_r - 1; i++)
-      prettyboard[r + i][c + blk_c - 1] = '|';
+      prettyboard[r + i][c + blk_c - 1] = rvertical;
   }
 }
 
 void pretty_print(string &input) {
   unsigned char prettyboard[PRETTY_ROWS][PRETTY_COLS];
+
   for (int i = 0; i < PRETTY_ROWS; i++)
     for (int j = 0; j < PRETTY_COLS; j++)
       prettyboard[i][j] = ' ';
+
+
   string board[SIZE];
   string_to_board(input, board);
   unordered_set<string> seen;
@@ -412,11 +457,18 @@ void pretty_print(string &input) {
     }
   }
 
+  print_goal(3, 1, prettyboard);
+  print_goal(3, 2, prettyboard);
+  print_goal(4, 1, prettyboard);
+  print_goal(4, 2, prettyboard);
+
   cout << endl;
+  indent();
   for (int i = 0; i < PRETTY_COLS + 4; i++)
-    cout << "=";
+    cout << '=';
   cout << endl;
   for (int i = 0; i < PRETTY_ROWS; i++) {
+    indent();
     cout << (i % 2 ? ") " : "( ");
     for (int j = 0; j < PRETTY_COLS; j++) {
       cout << prettyboard[i][j];
@@ -424,37 +476,8 @@ void pretty_print(string &input) {
     cout << (i % 2 ? " )" : " (");
     cout << endl;
   }
+  indent();
   for (int i = 0; i < PRETTY_COLS + 4; i++)
-    cout << "=";
+    cout << '=';
   cout << endl << endl;
 }
-
-// bool solve_util(string (&board)[SIZE], unordered_set<string> prev_boards,
-// int& empty) {
-//     if (is_solved(board))
-//         return true;
-//     if (prev_boards.count(board_to_string(board)))
-//         return false;
-//
-//     curr_prev_boards.insert(board_to_string(board));
-//     int other_empty = find_other_empty(empty, board);
-//
-//     if (move_left_in(empty, board) && solve_util(board, curr_prev_boards,
-//     other_empty))
-//         return true;
-//     else if (move_right_in(empty, board) && solve_util(board,
-//     curr_prev_boards, other_empty))
-//         return true;
-//     else if (move_above_in(empty, board) && solve_util(board,
-//     curr_prev_boards, other_empty))
-//         return true;
-//     else if (move_below_in(empty, board) && solve_util(board,
-//     curr_prev_boards, other_empty))
-//         return true;
-//     else if (solve_util(board, curr_prev_boards, other_empty))
-//         return true;
-//     else
-//         prev_boards.clear(board_to_string(board));
-//
-//     return false;
-// }
